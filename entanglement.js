@@ -73,6 +73,7 @@ const dots = {
     outerRadiusMultiplier: 60,
     dotsArray: [],
     drifting: false,
+    mergable: false,
     drip: function() {
         const poleVertical = (Math.random() < 0.5);
         const x = Math.floor(Math.random() * screen.canvas.width * 0.8 + screen.canvas.width * 0.1);
@@ -93,8 +94,22 @@ const dots = {
             this.dotsArray[i].adjust(i);
         }
     },
-    merge() {
-
+    mergeTwoDots(lowerIndexedDot, higherIndexedDot) {
+        if (lowerIndexedDot.radius === higherIndexedDot.radius) {
+            const xAdd = (higherIndexedDot.x - lowerIndexedDot.x) / 2;
+            const yAdd = (higherIndexedDot.y - lowerIndexedDot.y) / 2;
+            lowerIndexedDot.x += xAdd;
+            lowerIndexedDot.y += yAdd;
+        } else if (higherIndexedDot.radius > lowerIndexedDot.radius) {
+            lowerIndexedDot.x = higherIndexedDot.x;
+            lowerIndexedDot.y = higherIndexedDot.y;
+        }
+        const areaSum = (Math.PI * (lowerIndexedDot.radius ** 2)) + (Math.PI * (higherIndexedDot.radius ** 2));
+        const newRadius = (areaSum / Math.PI) ** 0.5;
+        lowerIndexedDot.radius = newRadius;
+        lowerIndexedDot.horizontalVelocity += higherIndexedDot.horizontalVelocity;
+        lowerIndexedDot.verticalVelocity += higherIndexedDot.verticalVelocity;
+        higherIndexedDot.remove();
     },
     entangleAndMergeCheck(index) {
         if (index > 0) {
@@ -103,8 +118,8 @@ const dots = {
                 const nextDot = this.dotsArray[i];
                 const outerRadius = (currentDot.radius > nextDot.radius) ? currentDot.radius * this.outerRadiusMultiplier : nextDot.radius * this.outerRadiusMultiplier;
                 const hypotenuse = (((currentDot.x - nextDot.x) ** 2) + ((currentDot.y - nextDot.y) ** 2)) ** 0.5;
-                if (hypotenuse < currentDot.radius + nextDot.radius) {
-                    this.merge(currentDot, nextDot, outerRadius, hypotenuse);
+                if (dots.mergable && hypotenuse < currentDot.radius + nextDot.radius) {
+                    this.mergeTwoDots(nextDot, currentDot);
                 } else if (hypotenuse < outerRadius) {
                     this.entangle(currentDot, nextDot, outerRadius, hypotenuse);
                 }
@@ -236,5 +251,7 @@ function releasedKey(btn) {
         screen.randomSeed(10);
     } else if (key === 82) { // u
         dots.dotsArray = [];
+    } else if (key === 77) { // m
+        dots.mergable = !dots.mergable;
     }
 }
