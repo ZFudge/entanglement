@@ -120,6 +120,7 @@ const dots = {
                 const hypotenuse = (((currentDot.x - nextDot.x) ** 2) + ((currentDot.y - nextDot.y) ** 2)) ** 0.5;
                 if (dots.mergable && hypotenuse < currentDot.radius + nextDot.radius) {
                     this.mergeTwoDots(nextDot, currentDot);
+                    break;
                 } else if (hypotenuse < outerRadius) {
                     this.entangle(currentDot, nextDot, outerRadius, hypotenuse);
                 }
@@ -245,13 +246,13 @@ function releasedKey(btn) {
         mouse.movable = ! mouse.movable;
     } else if (key === 67) { // c
         dots.dripping = !dots.dripping;
+    } else if (key === 86) { // v
+        dots.mergable = !dots.mergable;
     } else if (key === 85) { // u
         dots.dotsArray.pop()
-    } else if (key === 84) { // u
+    } else if (key === 84) { // t
         screen.randomSeed(10);
-    } else if (key === 82) { // u
+    } else if (key === 82) { // r
         dots.dotsArray = [];
-    } else if (key === 77) { // m
-        dots.mergable = !dots.mergable;
     }
 }
