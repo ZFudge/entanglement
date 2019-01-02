@@ -1,12 +1,12 @@
-#Entanglement
+Click the screen to place dots
 
-Click to place dots
+R to remove all dots
+T to add random dots
+U to remove most recent dot
 
-R: Remove all dots
-T: Add 10 random dots
-U: Remove last dot added
+Z to toggle drifting
+X to toggle mouse interaction
+C to toggle merging of dots
+V to toggle random dot generation
 
-Z: Toggle drift
-X: Toggle mouse interaction
-C: Toggle random dot generation
-V: Toggle merging of dots
+Mhm.
