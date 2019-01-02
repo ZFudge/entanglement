@@ -2,6 +2,7 @@ function Dot(x, y, radius, verticalVelocity, horizontalVelocity) {
     this.x = x;
     this.y = y;
     this.radius = radius;
+    this.outerRadius = radius * dots.outerRadiusMultiplier;
     this.verticalVelocity = verticalVelocity;
     this.horizontalVelocity = horizontalVelocity;
     this.targetVerticalVelocity = verticalVelocity;
@@ -9,9 +10,8 @@ function Dot(x, y, radius, verticalVelocity, horizontalVelocity) {
 }
 
 Dot.prototype.adjust = function(index) {
-    const outerRadius = this.radius * dots.outerRadiusMultiplier;
     if (dots.drifting) {
-        if (mouse.movable && mouse.coordinates.x && mouse.proximityCheck(this.x, this.y, outerRadius)) {
+        if (mouse.movable && mouse.coordinates.x && mouse.proximityCheck(this.x, this.y, this.outerRadius)) {
             this.push();
         } else if (this.checkInertia()) {
             this.horizontalVelocity *= 0.99;
@@ -29,11 +29,12 @@ Dot.prototype.adjust = function(index) {
         }
     }
     this.draw();
-    if (dots.dotsArray.length > 0) dots.entangleAndMergeCheck(index);
+    if (dots.dotArray.length > 0) dots.entangleAndMergeCheck(index);
 };
 
 Dot.prototype.checkInertia = function() {
-    return (Math.abs(this.horizontalVelocity) > Math.abs(this.targetHorizontalVelocity) && Math.abs(this.horizontalVelocity - this.targetHorizontalVelocity) > 0.1)
+    return (Math.abs(this.horizontalVelocity) > Math.abs(this.targetHorizontalVelocity)
+        && Math.abs(this.horizontalVelocity - this.targetHorizontalVelocity) > 0.1);
 };
 
 Dot.prototype.push = function() {
@@ -56,22 +57,21 @@ Dot.prototype.draw = function() {
 };
 
 Dot.prototype.removeCheck = function() {
-    const outerRadius = this.radius * dots.outerRadiusMultiplier;
-    const leftX = -outerRadius;
-    const rightX = screen.canvas.width + outerRadius;
-    const topY = -outerRadius;
-    const bottomY = screen.canvas.height + outerRadius;
+    const leftX = -this.outerRadius;
+    const rightX = screen.canvas.width + this.outerRadius;
+    const topY = -this.outerRadius;
+    const bottomY = screen.canvas.height + this.outerRadius;
     return (this.x < leftX || this.x > rightX || this.y < topY || this.y > bottomY);
 };
 
 Dot.prototype.remove = function() {
-    dots.dotsArray.splice(dots.dotsArray.indexOf(this), 1);
+    dots.dotArray.splice(dots.dotArray.indexOf(this), 1);
 };
 
 const dots = {
     maxBlurWidth: 3,
     outerRadiusMultiplier: 60,
-    dotsArray: [],
+    dotArray: [],
     drifting: false,
     mergable: false,
     drip: function() {
@@ -81,17 +81,17 @@ const dots = {
         const y = (poleVertical) ? -radius * this.outerRadiusMultiplier : radius * this.outerRadiusMultiplier + screen.canvas.height;
         const verticalVelocity = (poleVertical) ? this.randomVelocity() : -this.randomVelocity();
         const horizontalVelocity = this.randomVelocity()
-        this.dotsArray.push(new Dot(x, y, radius, verticalVelocity, horizontalVelocity));
+        this.dotArray.push(new Dot(x, y, radius, verticalVelocity, horizontalVelocity));
     },
     maximumDots: 15,
     dripCheck: function() {
-        if (this.dripping && Math.random() < 0.1 && this.dotsArray.length < this.maximumDots) dots.drip();
+        if (this.dripping && Math.random() < 0.1 && this.dotArray.length < this.maximumDots) dots.drip();
     },
     dripping: false,
     adjust: function() {
         screen.context.clearRect(0, 0, screen.canvas.width, screen.canvas.height);
-        for (let i = this.dotsArray.length - 1; i >= 0; i--) {
-            this.dotsArray[i].adjust(i);
+        for (let i = this.dotArray.length - 1; i >= 0; i--) {
+            this.dotArray[i].adjust(i);
         }
     },
     mergeTwoDots(lowerIndexedDot, higherIndexedDot) {
@@ -113,23 +113,23 @@ const dots = {
     },
     entangleAndMergeCheck(index) {
         if (index > 0) {
-            const currentDot = this.dotsArray[index];
+            const currentDot = this.dotArray[index];
             for (let i = index - 1; i >= 0; i--) {
-                const nextDot = this.dotsArray[i];
-                const outerRadius = (currentDot.radius > nextDot.radius) ? currentDot.radius * this.outerRadiusMultiplier : nextDot.radius * this.outerRadiusMultiplier;
+                const nextDot = this.dotArray[i];
+                const greaterOuterRadius = Math.max(currentDot.outerRadius, nextDot.outerRadius);
                 const hypotenuse = (((currentDot.x - nextDot.x) ** 2) + ((currentDot.y - nextDot.y) ** 2)) ** 0.5;
                 if (dots.mergable && hypotenuse < currentDot.radius + nextDot.radius) {
                     this.mergeTwoDots(nextDot, currentDot);
                     break;
-                } else if (hypotenuse < outerRadius) {
-                    this.entangle(currentDot, nextDot, outerRadius, hypotenuse);
+                } else if (hypotenuse < greaterOuterRadius) {
+                    this.entangle(currentDot, nextDot, greaterOuterRadius, hypotenuse);
                 }
             }
         }
     },
-    entangle(dot1, dot2, outerRadius, distance) {
-        const intensity = outerRadius - distance;
-        const width = (1 / outerRadius) * intensity * this.maxBlurWidth;
+    entangle(dot1, dot2, greaterOuterRadius, distance) {
+        const intensity = greaterOuterRadius - distance;
+        const width = (1 / greaterOuterRadius) * intensity * this.maxBlurWidth;
         const ctx = screen.context;
         ctx.shadowBlur = width * 100;
         ctx.lineWidth = width;
@@ -153,7 +153,7 @@ const mouse = {
         const radius = dots.randomRadius();
         const verticalVelocity = dots.randomVelocity();
         const horizontalVelocity = dots.randomVelocity();
-        dots.dotsArray.push(new Dot(x, y, radius, verticalVelocity, horizontalVelocity));
+        dots.dotArray.push(new Dot(x, y, radius, verticalVelocity, horizontalVelocity));
     },
     move(x, y) {
         this.coordinates.x = x;
@@ -194,7 +194,15 @@ const mouse = {
 };
 
 const screen = {
-    ms: 50,
+    _ms: 50,
+    get ms() {
+        return this._ms;
+    },
+    set ms(n) {
+        this._ms = n;
+        clearInterval(this.loop);
+        this.loop = setInterval(this.main, this.ms);
+    },
     resize(width, height) {
         const cnv = this.canvas;
         const ctx = this.context;
@@ -213,7 +221,25 @@ const screen = {
             const radius = dots.randomRadius();
             const verticalVelocity = dots.randomVelocity();
             const horizontalVelocity = dots.randomVelocity();
-            dots.dotsArray.push(new Dot(x, y, radius, verticalVelocity, horizontalVelocity));
+            dots.dotArray.push(new Dot(x, y, radius, verticalVelocity, horizontalVelocity));
+        }
+    },
+    releasedKey(btn) {
+        const key = btn.keyCode;
+        if (key === 90) { // Z
+            dots.drifting = !dots.drifting;
+        } else if (key === 88) { // X
+            mouse.movable = ! mouse.movable;
+        } else if (key === 67) { // C
+            dots.mergable = !dots.mergable;
+        } else if (key === 86) { // V
+            dots.dripping = !dots.dripping;
+        } else if (key === 85) { // U
+            dots.dotArray.pop()
+        } else if (key === 84) { // T
+            screen.randomSeed(10);
+        } else if (key === 82) { // R
+            dots.dotArray = [];
         }
     },
     main() {
@@ -233,26 +259,6 @@ screen.context.strokeStyle = 'white';
 screen.loop = setInterval(screen.main, screen.ms);
 
 window.addEventListener("resize", () => screen.resize(innerWidth, innerHeight));
+document.addEventListener("keyup", screen.releasedKey);
 document.addEventListener('mousemove', (e) => mouse.move(e.clientX, e.clientY));
 document.addEventListener('click', (e) => mouse.click(e.clientX, e.clientY));
-
-document.addEventListener("keyup", releasedKey);
-
-function releasedKey(btn) {
-    const key = btn.keyCode;
-    if (key === 90) { // z
-        dots.drifting = !dots.drifting;
-    } else if (key === 88) { // x
-        mouse.movable = ! mouse.movable;
-    } else if (key === 67) { // c
-        dots.dripping = !dots.dripping;
-    } else if (key === 86) { // v
-        dots.mergable = !dots.mergable;
-    } else if (key === 85) { // u
-        dots.dotsArray.pop()
-    } else if (key === 84) { // t
-        screen.randomSeed(10);
-    } else if (key === 82) { // r
-        dots.dotsArray = [];
-    }
-}
