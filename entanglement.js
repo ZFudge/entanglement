@@ -78,7 +78,7 @@ const dots = {
         const poleVertical = (Math.random() < 0.5);
         const x = Math.floor(Math.random() * screen.canvas.width * 0.8 + screen.canvas.width * 0.1);
         const radius = this.randomRadius();
-        const y = (poleVertical) ? -radius * this.outerRadiusMultiplier : radius * this.outerRadiusMultiplier + screen.canvas.height;
+        const y = (poleVertical) ? -this.outerRadius : this.outerRadius + screen.canvas.height;
         const verticalVelocity = (poleVertical) ? this.randomVelocity() : -this.randomVelocity();
         const horizontalVelocity = this.randomVelocity()
         this.dotArray.push(new Dot(x, y, radius, verticalVelocity, horizontalVelocity));
@@ -107,6 +107,7 @@ const dots = {
         const areaSum = (Math.PI * (lowerIndexedDot.radius ** 2)) + (Math.PI * (higherIndexedDot.radius ** 2));
         const newRadius = (areaSum / Math.PI) ** 0.5;
         lowerIndexedDot.radius = newRadius;
+        lowerIndexedDot.outerRadius = newRadius * this.outerRadiusMultiplier;
         lowerIndexedDot.horizontalVelocity += higherIndexedDot.horizontalVelocity;
         lowerIndexedDot.verticalVelocity += higherIndexedDot.verticalVelocity;
         higherIndexedDot.remove();
@@ -209,15 +210,15 @@ const screen = {
         cnv.width = width;
         cnv.height = height;
         ctx.lineCap = 'round';
-        ctx.shadowColor = 'white';
         ctx.fillStyle = 'white';
+        ctx.shadowColor = 'white';
         ctx.strokeStyle = 'white';
         ctx.shadowBlur = 0.5;
     },
     randomSeed(total = 0) {
         for (var i = 0; i < total; i++) {
-            const x = Math.floor(Math.random() * this.canvas.width * 0.8);
-            const y = Math.floor(Math.random() * this.canvas.height * 0.8);
+            const x = Math.floor(Math.random() * this.canvas.width * 0.6) + this.canvas.width * 0.2;
+            const y = Math.floor(Math.random() * this.canvas.height * 0.6) + this.canvas.height * 0.2;
             const radius = dots.randomRadius();
             const verticalVelocity = dots.randomVelocity();
             const horizontalVelocity = dots.randomVelocity();
@@ -235,7 +236,7 @@ const screen = {
         } else if (key === 86) { // V
             dots.dripping = !dots.dripping;
         } else if (key === 85) { // U
-            dots.dotArray.pop()
+            dots.dotArray.pop();
         } else if (key === 84) { // T
             screen.randomSeed(10);
         } else if (key === 82) { // R
@@ -259,6 +260,6 @@ screen.context.strokeStyle = 'white';
 screen.loop = setInterval(screen.main, screen.ms);
 
 window.addEventListener("resize", () => screen.resize(innerWidth, innerHeight));
-document.addEventListener("keyup", screen.releasedKey);
 document.addEventListener('mousemove', (e) => mouse.move(e.clientX, e.clientY));
 document.addEventListener('click', (e) => mouse.click(e.clientX, e.clientY));
+document.addEventListener("keyup", screen.releasedKey);
